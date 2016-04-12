@@ -9,6 +9,12 @@ from glob import glob
 from optparse import OptionParser
 from time import sleep
 
+# messages
+WARN_NO_STORAGE = "You must load storage from file or create new."
+WARN_LONG_DESCRIPTION = "Too long description. Try again"
+EMPTY_STORAGE = "Your password storage is empty."
+WRONG_PASSWORD = "Wrong password!"
+
 
 class PasswordManager(object):
     """ Class for managing your passwords in a safe way """
@@ -49,13 +55,13 @@ class PasswordManager(object):
     def change_storage_password(self):
         """ Change storage password """
         if not self._pass_storage:
-            print "You must load storage from file or create new."
+            print WARN_NO_STORAGE
             return None
         key = getpass('Enter old password: ')
         try:
             data = simplecrypt.decrypt(key, self._pass_storage)
         except:
-            print "Wrong password!"
+            print WRONG_PASSWORD
             return None
         password = self._set_new_password()
         save_storage()
@@ -85,7 +91,7 @@ class PasswordManager(object):
         try:
             data = simplecrypt.decrypt(key, data)
         except:
-            print "Wrong password!"
+            print WRONG_PASSWORD
             return False
         else:
             self._storage_password = key
@@ -99,16 +105,16 @@ class PasswordManager(object):
                 for description in self._pass_storage.keys():
                     print description
             else:
-                print 'Your password storage is empty'
+                print EMPTY_STORAGE
         else:
-            print "You must load storage from file or create new."
+            print WARN_NO_STORAGE
 
     def get_password_by_description(self, desc):
         """ Returns all passwords, which match description pattern """
         passwords = {}
         if not self._pass_storage is None:
             if len(desc) > 100:
-                print "Too long description. Try again"
+                print WARN_LONG_DESCRIPTION
             else:
                 for key in self._pass_storage:
                     if desc in key:
@@ -117,13 +123,13 @@ class PasswordManager(object):
 
     def add_new_password(self):
         if self._pass_storage is None:
-            print "You must load storage from file or create new."
+            print WARN_NO_STORAGE
             return None
 
         while True:
             description = raw_input('Enter description (up to 100 symbols): ')
             if len(description) > 100:
-                print "Too long description. Try again"
+                print WARN_LONG_DESCRIPTION
             elif description in self._pass_storage:
                 print "This description exists already in current storage"
             else:
@@ -134,18 +140,18 @@ class PasswordManager(object):
 
     def del_password(self):
         if self._pass_storage is None:
-            print "You must load storage from file or create new."
+            print WARN_NO_STORAGE
             return None
 
         if not self._pass_storage:
-            print 'Your password storage is empty'
+            print EMPTY_STORAGE
             return None
 
         counter = 0
         while True:
             description = raw_input('Enter description (up to 100 symbols): ')
             if len(description) > 100:
-                print "Too long description. Try again"
+                print WARN_LONG_DESCRIPTION
             else:
                 for key in self._pass_storage.keys():
                     if description in key:
