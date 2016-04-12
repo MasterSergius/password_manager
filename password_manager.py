@@ -33,9 +33,11 @@ class PasswordManager(object):
         """ Create new storage by saving empty dict in a new file """
         try:
             filename = raw_input('Enter filename for new storage: ')
+            if not filename.endswith(".pwdm"):
+                filename += ".pwdm"
             password = self._set_new_password()
-            data = simplecrypt.encrypt(password, {})
-            with open("%s.pwdm" % filename, 'w') as f:
+            data = simplecrypt.encrypt(password, json.dumps({}))
+            with open(filename, 'w') as f:
                 f.write(data)
             self._pass_storage = {}
             self._storage_password = password
