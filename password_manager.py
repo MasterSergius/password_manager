@@ -9,12 +9,16 @@ from glob import glob
 from optparse import OptionParser
 from time import sleep
 
+STORAGE_FILENAME_EXT = ".pwdm"
+
 # messages
 WARN_NO_STORAGE = "You must load storage from file or create new."
 WARN_LONG_DESCRIPTION = "Too long description. Try again"
 EMPTY_STORAGE = "Your password storage is empty."
 WRONG_PASSWORD = "Wrong password!"
 
+class WrongPasswordException(Exception):
+    pass
 
 class PasswordManager(object):
     """ Class for managing your passwords in a safe way """
@@ -39,8 +43,8 @@ class PasswordManager(object):
         """ Create new storage by saving empty dict in a new file """
         try:
             filename = raw_input('Enter filename for new storage: ')
-            if not filename.endswith(".pwdm"):
-                filename += ".pwdm"
+            if not filename.endswith(STORAGE_FILENAME_EXT):
+                filename += STORAGE_FILENAME_EXT
             password = self._set_new_password()
             data = simplecrypt.encrypt(password, json.dumps({}))
             with open(filename, 'w') as f:
@@ -61,16 +65,15 @@ class PasswordManager(object):
         try:
             data = simplecrypt.decrypt(key, self._pass_storage)
         except:
-            print WRONG_PASSWORD
-            return None
+            raise WrongPasswordException(WRONG_PASSWORD)
         password = self._set_new_password()
         save_storage()
         print 'Password changed successfully.'
 
     def load_storage(self, filename):
         """ Load password storage from file """
-        if not filename.endswith(".pwdm"):
-            filename += ".pwdm"
+        if not filename.endswith(STORAGE_FILENAME_EXT):
+            filename += STORAGE_FILENAME_EXT
         with open(filename, 'r') as f:
             data = f.read()
         self._pass_storage = self._decrypt_storage(data)
@@ -91,8 +94,7 @@ class PasswordManager(object):
         try:
             data = simplecrypt.decrypt(key, data)
         except:
-            print WRONG_PASSWORD
-            return False
+            raise WrongPasswordException(WRONG_PASSWORD)
         else:
             self._storage_password = key
             return json.loads(data)
@@ -136,9 +138,9 @@ class PasswordManager(object):
                 break
         password = self._set_new_password()
         self._pass_storage[description] = password
-        print "New password successfully added! To save it use command 'save'."
+        print "New password successfully added! To save it use command 'save <filename>'."
 
-    def del_password(self):
+    def del_password(self, description):
         if self._pass_storage is None:
             print WARN_NO_STORAGE
             return None
@@ -149,21 +151,22 @@ class PasswordManager(object):
 
         counter = 0
         while True:
-            description = raw_input('Enter description (up to 100 symbols): ')
             if len(description) > 100:
                 print WARN_LONG_DESCRIPTION
             else:
                 for key in self._pass_storage.keys():
                     if description in key:
-                        del self._pass_storage[key]
-                        counter += 1
+                        accept = raw_input('Do you really want to delete %s? (y/n) ' % (key,))
+                        if accept in 'yY':
+                            del self._pass_storage[key]
+                            counter += 1
                 break
         print "Deleted %s passwords." % counter
         print "You can quit without saving to restore deleted passwords."
 
 def list_files(extension):
     """ Returns list of files with specified extension in current directory """
-    return glob('*.%s' % extension)
+    return glob('*%s' % extension)
 
 def menu():
     """Password Manager v1.0 by MasterSergius <master.sergius@gmail.com>
@@ -209,7 +212,7 @@ def menu():
             print menu.__doc__
 
         elif cmd[0] == 'ls':
-            ls = list_files('pwdm') or []
+            ls = list_files(STORAGE_FILENAME_EXT) or []
             for fname in ls:
                 print fname
 
@@ -239,7 +242,10 @@ def menu():
             pwdm.add_new_password()
 
         elif cmd[0] == 'del':
-            pwdm.del_password()
+            try:
+                pwdm.del_password(cmd[1])
+            except IndexError:
+                print 'You must specify password description'
 
         elif cmd[0] == 'show':
             pwdm.get_pass_list()
